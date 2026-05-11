@@ -139,29 +139,61 @@ def cached_endpoint(ttl=300):
 @cached_endpoint()
 def get_account_info():
     uid = request.args.get('uid')
-    if not uid:
-        return jsonify({"error": "Please provide UID."}), 400
 
-    # Check cached region for UID
+    if not uid:
+        return jsonify({
+            "error": "Please provide UID."
+        }), 400
+
+    # Check cached region first
     if uid in uid_region_cache:
         try:
-            return_data = asyncio.run(GetAccountInformation(uid, "7", uid_region_cache[uid], "/GetPlayerPersonalShow"))
-            formatted_json = json.dumps(return_data, indent=2, ensure_ascii=False)
-            return formatted_json, 200, {'Content-Type': 'application/json; charset=utf-8'}
-        except:
-            pass  # fallback to testing all regions
+            return_data = asyncio.run(
+                GetAccountInformation(
+                    uid,
+                    "7",
+                    uid_region_cache[uid],
+                    "/GetPlayerPersonalShow"
+                )
+            )
 
+            filtered_data = {
+                "nickname": return_data.get("basicInfo", {}).get("nickname"),
+                "region": return_data.get("basicInfo", {}).get("region")
+            }
+
+            return jsonify(filtered_data)
+
+        except:
+            pass
+
+    # Try all regions
     for region in SUPPORTED_REGIONS:
         try:
-            return_data = asyncio.run(GetAccountInformation(uid, "7", region, "/GetPlayerPersonalShow"))
+            return_data = asyncio.run(
+                GetAccountInformation(
+                    uid,
+                    "7",
+                    region,
+                    "/GetPlayerPersonalShow"
+                )
+            )
+
             uid_region_cache[uid] = region
-            formatted_json = json.dumps(return_data, indent=2, ensure_ascii=False)
-            return formatted_json, 200, {'Content-Type': 'application/json; charset=utf-8'}
+
+            filtered_data = {
+                "nickname": return_data.get("basicInfo", {}).get("nickname"),
+                "region": return_data.get("basicInfo", {}).get("region")
+            }
+
+            return jsonify(filtered_data)
+
         except:
             continue
 
-    return jsonify({"error": "UID not found in any region."}), 404
-
+    return jsonify({
+        "error": "UID not found in any region."
+    }), 404
 @app.route('/refresh', methods=['GET','POST'])
 def refresh_tokens_endpoint():
     try:
