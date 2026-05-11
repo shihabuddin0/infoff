@@ -135,6 +135,18 @@ def cached_endpoint(ttl=300):
 
 # === Flask Routes ===
 
+
+@app.route('/test-login')
+def test_login():
+
+    async def run():
+        await create_jwt("BD")
+        return cached_tokens.get("BD")
+
+    data = asyncio.run(run())
+
+    return jsonify(data)
+
 @app.route('/player-info')
 @cached_endpoint()
 def get_account_info():
