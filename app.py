@@ -138,6 +138,9 @@ def cached_endpoint(ttl=300):
 @app.route('/player-info')
 @cached_endpoint()
 def get_account_info():
+
+    start_time = time.time()
+
     uid = request.args.get('uid')
 
     if not uid:
@@ -157,12 +160,19 @@ def get_account_info():
                 )
             )
 
+            end_time = time.time()
+
             filtered_data = {
                 "nickname": return_data.get("basicInfo", {}).get("nickname"),
-                "region": return_data.get("basicInfo", {}).get("region")
+                "region": return_data.get("basicInfo", {}).get("region"),
+                "response_time": f"{round(end_time - start_time, 2)} seconds"
             }
 
-            return jsonify(filtered_data)
+            return app.response_class(
+                response=json.dumps(filtered_data, ensure_ascii=False),
+                status=200,
+                mimetype='application/json'
+            )
 
         except:
             pass
@@ -181,20 +191,26 @@ def get_account_info():
 
             uid_region_cache[uid] = region
 
+            end_time = time.time()
+
             filtered_data = {
                 "nickname": return_data.get("basicInfo", {}).get("nickname"),
-                "region": return_data.get("basicInfo", {}).get("region")
+                "region": return_data.get("basicInfo", {}).get("region"),
+                "response_time": f"{round(end_time - start_time, 2)} seconds"
             }
 
-            return jsonify(filtered_data)
+            return app.response_class(
+                response=json.dumps(filtered_data, ensure_ascii=False),
+                status=200,
+                mimetype='application/json'
+            )
 
         except:
             continue
 
     return jsonify({
         "error": "UID not found in any region."
-    }), 404
-@app.route('/refresh', methods=['GET','POST'])
+    }), 404@app.route('/refresh', methods=['GET','POST'])
 def refresh_tokens_endpoint():
     try:
         asyncio.run(initialize_tokens())
